@@ -6,125 +6,330 @@
     <title>تحميل التقرير الشامل PDF</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-        body { font-family: 'Cairo', sans-serif; background-color: #f4f7f6; padding: 20px; direction: rtl; }
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+        :root {
+            --primary: #2c3e50;
+        }
+
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: #f4f7f6; 
+            padding: 15px; 
+            direction: rtl; 
+            margin: 0;
+            line-height: 1.7;
+        }
         
         #pdf-content { 
-            width: 100%; max-width: 800px; margin: auto; background: white; 
-            padding: 30px; border: 1px solid #ccc; color: #000;
+            width: 100%; 
+            max-width: 850px; 
+            margin: 20px auto; 
+            background: white; 
+            padding: 35px; 
+            border: 1px solid #e0e0e0; 
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+            color: #000;
+            overflow: hidden;
         }
-        .header { text-align: center; border-bottom: 3px double #000; padding-bottom: 10px; margin-bottom: 20px; }
-        
-        /* القسم الديناميكي */
-        .section { margin-bottom: 20px; border: 1px solid #eee; padding: 15px; border-radius: 5px; }
+
+        .header { 
+            text-align: center; 
+            border-bottom: 4px double #2c3e50; 
+            padding-bottom: 20px; 
+            margin-bottom: 30px; 
+        }
+        .header h1 {
+            font-size: 28px;
+            margin: 0 0 8px 0;
+            color: var(--primary);
+        }
+        .header p {
+            font-size: 16px;
+            color: #555;
+            margin: 0;
+        }
+
+        /* القسم الديناميكي - أكثر مرونة */
+        .section { 
+            margin-bottom: 28px; 
+            padding: 20px; 
+            border: 1px solid #eee; 
+            border-radius: 10px;
+            background: #fafcfc;
+        }
+        .section h3 {
+            color: var(--primary);
+            margin: 0 0 18px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            font-size: 20px;
+        }
+
         .field { 
-            margin: 10px 0; 
-            padding-bottom: 8px; 
-            border-bottom: 1px dashed #f0f0f0;
-            display: block; /* تغيير من flex لتفادي قطع النصوص في pdf */
-            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+            border-bottom: 1px dashed #e0e0e0;
+            gap: 15px;
+            flex-wrap: wrap;
         }
-        .label { font-weight: bold; color: #444; margin-left: 10px; display: inline-block; min-width: 150px; }
-        .value { color: #000; display: inline; word-wrap: break-word; }
-        
-        .btn-container { text-align: center; margin-bottom: 20px; }
-        .btn-download { background: #2ecc71; color: white; border: none; padding: 15px 30px; border-radius: 5px; font-weight: bold; cursor: pointer; font-family: 'Cairo'; }
-        
-        @media print { .no-print { display: none; } }
+        .label { 
+            font-weight: 700; 
+            color: #2c3e50; 
+            min-width: 190px;
+            flex-shrink: 0;
+            font-size: 16px;
+        }
+        .value { 
+            color: #000; 
+            flex: 1;
+            min-width: 220px;
+            word-break: break-word;
+            font-size: 16px;
+        }
+
+        /* دعم الأقسام الفرعية */
+        .nested-section {
+            margin-right: 20px;
+            border-right: 3px solid #3498db;
+            padding-right: 20px;
+        }
+
+        /* زر التحميل */
+        .btn-container { 
+            text-align: center; 
+            margin-bottom: 25px; 
+        }
+        .btn-download { 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            padding: 16px 40px; 
+            border-radius: 50px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            font-family: 'Cairo'; 
+            font-size: 18px;
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.3);
+            transition: all 0.3s;
+        }
+        .btn-download:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(39, 174, 96, 0.4);
+        }
+
+        /* متجاوب مع الموبايل */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            #pdf-content { 
+                padding: 25px 20px; 
+                margin: 10px auto; 
+                max-width: 100%; 
+                border-radius: 8px;
+            }
+            .field {
+                flex-direction: column;
+                gap: 6px;
+            }
+            .label {
+                min-width: 100%;
+            }
+            .value {
+                min-width: 100%;
+            }
+            .btn-download {
+                width: 100%;
+                max-width: none;
+                padding: 18px;
+                font-size: 17px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+
+        @media print { 
+            .no-print { display: none; } 
+            #pdf-content { box-shadow: none; border: none; padding: 30px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="btn-container no-print">
-    <h2 id="status">جاري معالجة البيانات...</h2>
-    <button class="btn-download" id="manualBtn" onclick="generatePDF()" style="display: none;">📥 تحميل ملف PDF الشامل</button>
+    <h2 id="status" style="color: #2c3e50; font-size: 18px;">جاري تحميل البيانات...</h2>
+    <button class="btn-download" id="manualBtn" onclick="generatePDF()" style="display: none;">
+        📥 تحميل التقرير الشامل PDF
+    </button>
 </div>
 
 <div id="pdf-content">
     <div class="header">
         <h1>التقرير الشامل للمشرف التربوي</h1>
-        <p>وثيقة رقمية معتمدة</p>
+        <p>وثيقة رسمية معتمدة • يتم إنشاؤها تلقائياً</p>
     </div>
 
-    <div id="dynamic-container" class="section">
-        </div>
+    <div id="dynamic-container"></div>
 </div>
 
 <script>
     let reportData = null;
 
+    /**
+     * دالة مرنة لبناء المحتوى الديناميكي
+     * تدعم:
+     * - بيانات مسطحة (النسخة القديمة)
+     * - بيانات متداخلة (أقسام فرعية)
+     * - مصفوفات
+     * - قيم boolean
+     */
+    function buildDynamicContent(container, data, level = 0) {
+        if (!data || typeof data !== 'object') return;
+
+        for (const [key, value] of Object.entries(data)) {
+            // تخطي القيم الفارغة
+            if (value === null || value === "" || value === undefined) continue;
+
+            const fieldDiv = document.createElement('div');
+
+            if (typeof value === 'object' && value !== null) {
+                // حالة متداخلة (قسم فرعي)
+                if (Array.isArray(value)) {
+                    // مصفوفة
+                    fieldDiv.className = 'field';
+                    const label = document.createElement('span');
+                    label.className = 'label';
+                    label.innerText = key + " :";
+
+                    const val = document.createElement('span');
+                    val.className = 'value';
+                    val.innerText = value.join(' • ');
+
+                    fieldDiv.appendChild(label);
+                    fieldDiv.appendChild(val);
+                } else {
+                    // كائن متداخل → قسم فرعي
+                    const subSection = document.createElement('div');
+                    subSection.className = level === 0 ? 'section' : 'section nested-section';
+
+                    const header = document.createElement('h3');
+                    header.innerText = key;
+                    subSection.appendChild(header);
+
+                    // استدعاء متكرر
+                    buildDynamicContent(subSection, value, level + 1);
+                    container.appendChild(subSection);
+                    continue; // ننتقل للعنصر التالي
+                }
+            } else {
+                // قيمة عادية (نص، رقم، boolean)
+                fieldDiv.className = 'field';
+
+                const label = document.createElement('span');
+                label.className = 'label';
+                label.innerText = key + " :";
+
+                const val = document.createElement('span');
+                val.className = 'value';
+
+                if (typeof value === 'boolean') {
+                    val.innerText = value ? "✅ نعم" : "❌ لا";
+                    val.style.color = value ? "#27ae60" : "#e74c3c";
+                } else {
+                    val.innerText = value;
+                }
+
+                fieldDiv.appendChild(label);
+                fieldDiv.appendChild(val);
+            }
+
+            container.appendChild(fieldDiv);
+        }
+    }
+
     window.onload = function() {
         const urlParams = new URLSearchParams(window.location.search);
         const encodedData = urlParams.get('data');
 
-        if (encodedData) {
-            try {
-                // فك التشفير
-                const decodedJSON = decodeURIComponent(escape(atob(encodedData)));
-                reportData = JSON.parse(decodedJSON);
-                
-                const container = document.getElementById('dynamic-container');
-                container.innerHTML = ''; 
+        if (!encodedData) {
+            document.getElementById('status').innerHTML = `❌ لم يتم العثور على بيانات<br><small>تأكد من إضافة ?data=... في الرابط</small>`;
+            return;
+        }
 
-                // بناء الحقول ديناميكياً بناءً على ما وصل من التطبيق
-                for (const [key, value] of Object.entries(reportData)) {
-                    if (value === null || value === "" || value === undefined) continue;
+        try {
+            // فك التشفير (نفس الطريقة القديمة + تحسين الأداء)
+            const decodedJSON = decodeURIComponent(escape(atob(encodedData)));
+            reportData = JSON.parse(decodedJSON);
 
-                    const fieldDiv = document.createElement('div');
-                    fieldDiv.className = 'field';
+            const container = document.getElementById('dynamic-container');
+            container.innerHTML = '';
 
-                    const labelSpan = document.createElement('span');
-                    labelSpan.className = 'label';
-                    labelSpan.innerText = key + " :";
+            // بناء المحتوى بطريقة مرنة ومتداخلة
+            buildDynamicContent(container, reportData);
 
-                    const valueSpan = document.createElement('span');
-                    valueSpan.className = 'value';
-                    
-                    // تحويل القيم لتناسب النص
-                    if (typeof value === 'boolean') {
-                        valueSpan.innerText = value ? "نعم" : "لا";
-                    } else if (Array.isArray(value)) {
-                        valueSpan.innerText = value.join(' - ');
-                    } else {
-                        valueSpan.innerText = value;
-                    }
+            // تحديث الواجهة
+            document.getElementById('status').innerHTML = `✅ تم استيراد جميع البيانات بنجاح<br><small>جاري إعداد التقرير للطباعة...</small>`;
+            document.getElementById('manualBtn').style.display = "inline-block";
 
-                    fieldDiv.appendChild(labelSpan);
-                    fieldDiv.appendChild(valueSpan);
-                    container.appendChild(fieldDiv);
+            // تشغيل التحميل التلقائي بعد التأكد من تحميل الصفحة بالكامل
+            setTimeout(() => {
+                if (document.getElementById('manualBtn').style.display !== "none") {
+                    generatePDF();
                 }
+            }, 1400);
 
-                document.getElementById('status').innerText = "✅ تم استيراد كافة البيانات بنجاح";
-                document.getElementById('manualBtn').style.display = "inline-block";
-                
-                // تشغيل التحميل تلقائياً
-                setTimeout(generatePDF, 1200);
-
-            } catch (e) {
-                document.getElementById('status').innerText = "❌ فشل في فك التشفير";
-                console.error(e);
-            }
+        } catch (e) {
+            console.error(e);
+            document.getElementById('status').innerHTML = `❌ خطأ في فك البيانات<br><small>تأكد من صحة الرابط أو تواصل مع المطور</small>`;
         }
     };
 
     function generatePDF() {
         const element = document.getElementById('pdf-content');
         
-        // إعدادات تضمن عدم خروج المحتوى عن الورقة A4
         const opt = {
-            margin:       [0.5, 0.5],
-            filename:     'تقرير_شامل.pdf',
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { 
-                scale: 2, 
-                useCORS: true, 
-                letterRendering: false, // لضمان تماسك الحروف العربية
-                width: element.clientWidth // إجبار المحرك على العرض الحالي
+            margin: [12, 10, 12, 10],           // حواف أفضل للورقة A4
+            filename: 'تقرير_شامل_المشرف_التربوي.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { 
+                scale: 3,                       // دقة أعلى (يعمل بشكل ممتاز مع العربية)
+                useCORS: true,
+                letterRendering: true,          // أفضل دعم للحروف العربية المتصلة
+                allowTaint: true,
+                scrollX: 0,
+                scrollY: 0,
+                width: element.offsetWidth,
+                height: element.offsetHeight
             },
-            jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait',
+                compress: true
+            }
         };
 
-        html2pdf().set(opt).from(element).save();
+        // رسالة تحميل أثناء العملية
+        const originalText = document.getElementById('status').innerHTML;
+        document.getElementById('status').innerHTML = `⏳ جاري إنشاء ملف PDF...`;
+
+        html2pdf()
+            .set(opt)
+            .from(element)
+            .save()
+            .then(() => {
+                // إرجاع الزر والرسالة بعد التحميل
+                document.getElementById('status').innerHTML = originalText;
+                document.getElementById('manualBtn').style.display = "inline-block";
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('status').innerHTML = `❌ حدث خطأ أثناء إنشاء PDF`;
+                document.getElementById('manualBtn').style.display = "inline-block";
+            });
     }
 </script>
 </body>
