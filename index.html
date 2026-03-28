@@ -3,66 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المستخرج الذكي - نسخة التصحيح</title>
+    <title>المستخرج الرسمي - النسخة النهائية</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* تحميل الخط محلياً أو ضمان انتظاره */
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
         
-        body { font-family: 'Cairo', 'Segoe UI', Tahoma, sans-serif; background-color: #f0f2f5; padding: 20px; direction: rtl; }
-        
-        .input-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; text-align: center; }
-        textarea { width: 100%; height: 80px; padding: 10px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 5px; font-family: monospace; direction: ltr; }
-        
-        .btn-action { background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; }
-        
-        /* تنسيق الـ PDF لضمان عدم التقطيع */
+        body { font-family: 'Cairo', sans-serif; background-color: #f0f2f5; padding: 20px; direction: rtl; }
+        .no-print { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        textarea { width: 90%; height: 60px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
+        .btn-action { background: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        /* إعدادات الحاوية لضمان عدم التقطيع */
         #pdf-content { 
             background: white; 
-            padding: 30px; 
-            width: 190mm; /* عرض ثابت يتناسب مع A4 */
+            padding: 20mm; 
+            width: 170mm; /* عرض مثالي لترك هوامش */
             margin: auto;
-            min-height: 270mm;
-            display: none; 
+            min-height: 250mm;
+            display: none;
+            box-sizing: border-box;
         }
 
-        .header { text-align: center; border-bottom: 4px solid #2c3e50; margin-bottom: 20px; padding-bottom: 10px; }
-        .header h1 { color: #2c3e50; margin: 0; font-size: 24px; }
+        .header { text-align: center; border-bottom: 3px solid #2c3e50; margin-bottom: 25px; padding-bottom: 15px; }
+        .data-row { display: flex; border-bottom: 1px solid #f0f0f0; padding: 10px 0; page-break-inside: avoid; }
+        .data-label { font-weight: 700; width: 130px; color: #2c3e50; }
+        .data-value { flex: 1; font-size: 16px; color: #444; }
 
-        .data-row { display: flex; border-bottom: 1px solid #eee; padding: 8px 0; align-items: center; }
-        .data-label { font-weight: 700; width: 140px; color: #34495e; border-left: 2px solid #3498db; padding-left: 10px; margin-left: 10px; }
-        .data-value { flex: 1; font-size: 16px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: auto; }
+        tr { page-break-inside: avoid; page-break-after: auto; } /* منع قطع الصف */
+        th, td { border: 1px solid #2c3e50; padding: 8px; text-align: center; font-size: 14px; overflow: hidden; }
+        th { background: #34495e; color: white; }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-        th, td { border: 1px solid #bdc3c7; padding: 10px; text-align: center; word-wrap: break-word; font-size: 13px; }
-        th { background: #34495e; color: white; font-weight: bold; }
-        tr:nth-child(even) { background: #f2f2f2; }
-
-        .section-title { background: #ecf0f1; padding: 8px; margin-top: 15px; font-weight: bold; border-right: 5px solid #2c3e50; color: #2c3e50; }
-        
-        .no-print { margin-bottom: 20px; }
+        .section-title { background: #f8fafc; padding: 8px; margin-top: 20px; font-weight: bold; border-right: 4px solid #3498db; color: #2c3e50; page-break-inside: avoid; }
     </style>
 </head>
 <body>
 
-<div class="input-section no-print">
-    <h2>استخراج التقرير الرسمي</h2>
-    <textarea id="base64Input" placeholder="أدخل الكود المشفر هنا..."></textarea>
-    <br>
-    <button class="btn-action" onclick="pasteAndProcess()">📋 لصق ومعالجة تلقائية</button>
-    <div id="status-msg" style="margin-top:10px;"></div>
+<div class="no-print">
+    <textarea id="base64Input" placeholder="الصق الكود هنا..."></textarea><br>
+    <button class="btn-action" onclick="pasteAndProcess()">📋 استخراج PDF</button>
+    <p id="status-msg"></p>
 </div>
 
 <div id="pdf-content">
     <div class="header">
-        <h1>التقرير الإداري الشامل</h1>
-        <p id="current-date" style="font-weight: bold;"></p>
+        <h1 style="margin:0">التقرير الإداري الشامل</h1>
+        <p id="current-date" style="margin:5px 0; color:#666;"></p>
     </div>
     <div id="dynamic-body"></div>
 </div>
 
 <script>
-// تحديث التاريخ فوراً
 document.getElementById('current-date').innerText = "تاريخ الاستخراج: " + new Date().toLocaleDateString('ar-DZ');
 
 async function pasteAndProcess() {
@@ -70,39 +61,26 @@ async function pasteAndProcess() {
         const text = await navigator.clipboard.readText();
         document.getElementById('base64Input').value = text;
         processData(text);
-    } catch (err) {
-        alert("يرجى لصق الكود يدوياً في المربع.");
-    }
+    } catch (err) { alert("قم باللصق يدوياً."); }
 }
 
 function processData(encodedData) {
     if(!encodedData) return;
-    showStatus("⏳ جاري تحضير الخطوط والبيانات...", "blue");
-    
     try {
-        // فك التشفير الآمن
         const binaryString = atob(encodedData.trim());
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-        const decodedStr = new TextDecoder('utf-8').decode(bytes);
-        const decoded = JSON.parse(decodedStr);
+        const decoded = JSON.parse(new TextDecoder('utf-8').decode(bytes));
 
         const container = document.getElementById('dynamic-body');
         container.innerHTML = ""; 
-        
         renderAnyData(decoded, container);
 
-        // إظهار المحتوى قبل التحويل لضمان التقاطه بواسطة المحرك
         document.getElementById('pdf-content').style.display = "block";
-
-        // الانتظار قليلاً للتأكد من رندر الخطوط
-        document.fonts.ready.then(() => {
-            setTimeout(generatePDF, 800);
-        });
-
-    } catch (e) {
-        showStatus("❌ فشل: الكود غير صحيح أو تالف", "red");
-    }
+        
+        // الانتظار حتى استقرار الخطوط تماماً
+        setTimeout(generatePDF, 500);
+    } catch (e) { alert("خطأ في الكود!"); }
 }
 
 function renderAnyData(data, container) {
@@ -112,14 +90,11 @@ function renderAnyData(data, container) {
             container.innerHTML += `<div class="section-title">${key}</div>`;
             container.appendChild(createTable(value));
         } else if (typeof value === 'object' && value !== null) {
-            const subDiv = document.createElement('div');
-            subDiv.innerHTML = `<div class="section-title">${key}</div>`;
-            renderAnyData(value, subDiv);
-            container.appendChild(subDiv);
+            renderAnyData(value, container);
         } else {
             container.innerHTML += `
                 <div class="data-row">
-                    <div class="data-label">${key}</div>
+                    <div class="data-label">${key}:</div>
                     <div class="data-value">${value}</div>
                 </div>`;
         }
@@ -130,56 +105,36 @@ function createTable(array) {
     if (array.length === 0) return document.createElement('div');
     const table = document.createElement('table');
     const headers = Object.keys(array[0]);
-    
     let html = `<thead><tr><th style="width:30px">#</th>`;
     headers.forEach(h => html += `<th>${h}</th>`);
     html += `</tr></thead><tbody>`;
-
     array.forEach((item, index) => {
         html += `<tr><td>${index + 1}</td>`;
-        headers.forEach(h => {
-            let val = item[h] || "-";
-            if(val === 'present') val = 'حاضر';
-            if(val === 'absent') val = 'غائب';
-            html += `<td>${val}</td>`;
-        });
+        headers.forEach(h => html += `<td>${item[h] || "-"}</td>`);
         html += `</tr>`;
     });
-    
     table.innerHTML = html + `</tbody>`;
     return table;
 }
 
 function generatePDF() {
-    showStatus("🖨️ جاري إنشاء ملف PDF...", "green");
     const element = document.getElementById('pdf-content');
-    
     const opt = {
-        margin: [10, 5, 10, 5],
-        filename: 'Report_' + new Date().getTime() + '.pdf',
+        margin: [10, 10, 10, 10], // هوامش حقيقية
+        filename: 'Report.pdf',
         image: { type: 'jpeg', quality: 1.0 },
-        // هذه الإعدادات هي سر حل تقطيع الحروف
         html2canvas: { 
             scale: 2, 
-            useCORS: true, 
-            letterRendering: false, // تعطيل هذا يمنع تقطيع الحروف العربية
-            logging: false,
-            scrollX: 0,
-            scrollY: 0
+            useCORS: true,
+            // السر هنا: DPI العالي يمنع التشويه
+            dpi: 192,
+            letterRendering: false 
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: 'avoid-all' }
+        // تفعيل نظام كسر الصفحات الذكي
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-
-    html2pdf().set(opt).from(element).save().then(() => {
-        showStatus("✅ تم التحميل بنجاح", "green");
-    });
-}
-
-function showStatus(msg, color) {
-    const el = document.getElementById('status-msg');
-    el.innerText = msg;
-    el.style.color = color;
+    html2pdf().set(opt).from(element).save();
 }
 </script>
 </body>
