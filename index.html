@@ -3,70 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>المستخرج الرسمي - النسخة النهائية</title>
+    <title>المستخرج الرسمي المطور</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
         
-        body { font-family: 'Cairo', sans-serif; background-color: #f0f2f5; padding: 20px; direction: rtl; }
-        .no-print { background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        textarea { width: 90%; height: 60px; padding: 10px; border: 1px solid #ccc; border-radius: 5px; margin-bottom: 10px; }
-        .btn-action { background: #3498db; color: white; border: none; padding: 12px 30px; border-radius: 5px; cursor: pointer; font-weight: bold; }
-
-        /* إعدادات الحاوية لضمان عدم التقطيع */
-        #pdf-content { 
-            background: white; 
-            padding: 20mm; 
-            width: 170mm; /* عرض مثالي لترك هوامش */
-            margin: auto;
-            min-height: 250mm;
-            display: none;
-            box-sizing: border-box;
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --bg: #f4f7f6;
+            --text: #333;
         }
 
-        .header { text-align: center; border-bottom: 3px solid #2c3e50; margin-bottom: 25px; padding-bottom: 15px; }
-        .data-row { display: flex; border-bottom: 1px solid #f0f0f0; padding: 10px 0; page-break-inside: avoid; }
-        .data-label { font-weight: 700; width: 130px; color: #2c3e50; }
-        .data-value { flex: 1; font-size: 16px; color: #444; }
+        body { 
+            font-family: 'Cairo', sans-serif; 
+            background-color: var(--bg); 
+            padding: 20px; 
+            direction: rtl; 
+            color: var(--text);
+            margin: 0;
+        }
 
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; page-break-inside: auto; }
-        tr { page-break-inside: avoid; page-break-after: auto; } /* منع قطع الصف */
-        th, td { border: 1px solid #2c3e50; padding: 8px; text-align: center; font-size: 14px; overflow: hidden; }
-        th { background: #34495e; color: white; }
+        /* واجهة الإدخال */
+        .no-print { 
+            max-width: 800px;
+            margin: 0 auto 30px auto;
+            background: white; 
+            padding: 25px; 
+            border-radius: 12px; 
+            text-align: center; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        }
+        
+        h2 { color: var(--primary); margin-top: 0; font-size: 20px; }
+        
+        textarea { 
+            width: 100%; 
+            height: 60px; 
+            padding: 12px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 8px; 
+            margin-bottom: 15px; 
+            font-family: monospace;
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+        
+        textarea:focus { border-color: var(--accent); outline: none; }
 
-        .section-title { background: #f8fafc; padding: 8px; margin-top: 20px; font-weight: bold; border-right: 4px solid #3498db; color: #2c3e50; page-break-inside: avoid; }
+        .btn-action { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 12px 35px; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            font-size: 16px;
+            transition: transform 0.2s, background 0.3s;
+        }
+        
+        .btn-action:hover { background: #2980b9; transform: translateY(-1px); }
+
+        /* تنسيق ورقة التقرير PDF */
+        #pdf-content { 
+            background: white; 
+            padding: 15mm 20mm; 
+            width: 210mm; /* عرض A4 كامل */
+            margin: auto;
+            min-height: 297mm;
+            display: none; /* يظهر فقط عند وجود بيانات */
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        .header { 
+            text-align: center; 
+            border-bottom: 3px double var(--primary); 
+            margin-bottom: 30px; 
+            padding-bottom: 20px; 
+        }
+        
+        .header h1 { margin: 0; font-size: 28px; color: var(--primary); }
+        .header p { margin: 5px 0; color: #7f8c8d; font-weight: 600; }
+
+        .data-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 15px; 
+            margin-bottom: 30px; 
+        }
+
+        .data-item { 
+            display: flex; 
+            border-bottom: 1px solid #f0f0f0; 
+            padding: 8px 0; 
+        }
+        
+        .label { font-weight: 700; width: 120px; color: var(--primary); }
+        .value { flex: 1; color: #2c3e50; }
+
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+            overflow: hidden;
+            border-radius: 8px;
+            border: 1px solid #bdc3c7;
+        }
+        
+        th, td { 
+            border: 1px solid #bdc3c7; 
+            padding: 12px 8px; 
+            text-align: center; 
+            font-size: 14px; 
+        }
+        
+        th { background: #f8fafc; color: var(--primary); font-weight: 700; border-bottom: 2px solid var(--primary); }
+        tr:nth-child(even) { background: #fcfcfc; }
+
+        .section-title { 
+            background: var(--primary); 
+            color: white; 
+            padding: 8px 15px; 
+            margin: 25px 0 10px 0; 
+            font-weight: bold; 
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        #status-msg { margin-top: 15px; font-weight: bold; color: var(--accent); }
     </style>
 </head>
 <body>
 
-<div class="no-print">
-    <textarea id="base64Input" placeholder="الصق الكود هنا..."></textarea><br>
-    <button class="btn-action" onclick="pasteAndProcess()">📋 استخراج PDF</button>
-    <p id="status-msg"></p>
+<div class="no-print" id="input-ui">
+    <h2>مركز استخراج التقارير الذكي</h2>
+    <textarea id="base64Input" placeholder="أدخل الكود المشفر هنا أو سيتم الكشف عنه تلقائياً من الرابط..."></textarea><br>
+    <button class="btn-action" onclick="processManualInput()">📋 استخراج المستند الآن</button>
+    <div id="status-msg"></div>
 </div>
 
 <div id="pdf-content">
     <div class="header">
-        <h1 style="margin:0">التقرير الإداري الشامل</h1>
-        <p id="current-date" style="margin:5px 0; color:#666;"></p>
+        <h1>الجمهورية الجزائرية الديمقراطية الشعبية</h1>
+        <p id="report-type-title">تقرير إداري</p>
+        <p id="current-date"></p>
     </div>
     <div id="dynamic-body"></div>
 </div>
 
 <script>
-document.getElementById('current-date').innerText = "تاريخ الاستخراج: " + new Date().toLocaleDateString('ar-DZ');
+// 1. عند التحميل: فحص الرابط أولاً (الطريقة القديمة)
+window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataFromUrl = urlParams.get('data');
+    if (dataFromUrl) {
+        document.getElementById('base64Input').value = dataFromUrl;
+        processData(dataFromUrl);
+    }
+    document.getElementById('current-date').innerText = "تاريخ الاستخراج: " + new Date().toLocaleDateString('ar-DZ');
+};
 
-async function pasteAndProcess() {
-    try {
-        const text = await navigator.clipboard.readText();
-        document.getElementById('base64Input').value = text;
-        processData(text);
-    } catch (err) { alert("قم باللصق يدوياً."); }
+function processManualInput() {
+    const text = document.getElementById('base64Input').value;
+    if(!text) { alert("يرجى إدخال البيانات"); return; }
+    processData(text);
 }
 
 function processData(encodedData) {
-    if(!encodedData) return;
+    showStatus("⏳ جاري تحليل البيانات...");
     try {
+        // فك التشفير
         const binaryString = atob(encodedData.trim());
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
@@ -74,43 +182,73 @@ function processData(encodedData) {
 
         const container = document.getElementById('dynamic-body');
         container.innerHTML = ""; 
+        
+        // تحديث عنوان التقرير إذا وجد
+        if(decoded["التقرير"] || decoded["Rapport"]) {
+            document.getElementById('report-type-title').innerText = decoded["التقرير"] || decoded["Rapport"];
+        }
+
         renderAnyData(decoded, container);
 
         document.getElementById('pdf-content').style.display = "block";
         
-        // الانتظار حتى استقرار الخطوط تماماً
-        setTimeout(generatePDF, 500);
-    } catch (e) { alert("خطأ في الكود!"); }
+        // انتظار استقرار الخطوط قبل التحويل
+        showStatus("🖨️ جاري توليد ملف PDF...");
+        setTimeout(generatePDF, 800);
+    } catch (e) { 
+        showStatus("❌ فشل: البيانات غير صالحة");
+        console.error(e);
+    }
 }
 
 function renderAnyData(data, container) {
+    let grid = document.createElement('div');
+    grid.className = "data-grid";
+    
     for (let key in data) {
         let value = data[key];
+        // إذا كانت مصفوفة (جدول)
         if (Array.isArray(value)) {
-            container.innerHTML += `<div class="section-title">${key}</div>`;
+            container.appendChild(grid); // أضف البيانات العلوية قبل الجدول
+            grid = document.createElement('div'); // صفر الشبكة لما بعد الجدول
+            grid.className = "data-grid";
+            
+            container.innerHTML += `<div class="section-title">بيانات: ${key}</div>`;
             container.appendChild(createTable(value));
-        } else if (typeof value === 'object' && value !== null) {
+        } 
+        // إذا كان كائناً (تجاهل العناوين المتكررة)
+        else if (typeof value === 'object' && value !== null) {
             renderAnyData(value, container);
-        } else {
-            container.innerHTML += `
-                <div class="data-row">
-                    <div class="data-label">${key}:</div>
-                    <div class="data-value">${value}</div>
-                </div>`;
+        } 
+        // بيانات نصية عادية
+        else {
+            if(key !== "التقرير" && key !== "Rapport") {
+                grid.innerHTML += `
+                    <div class="data-item">
+                        <div class="label">${key}:</div>
+                        <div class="value">${value}</div>
+                    </div>`;
+            }
         }
     }
+    if(grid.children.length > 0) container.appendChild(grid);
 }
 
 function createTable(array) {
     if (array.length === 0) return document.createElement('div');
     const table = document.createElement('table');
     const headers = Object.keys(array[0]);
-    let html = `<thead><tr><th style="width:30px">#</th>`;
+    let html = `<thead><tr><th style="width:35px">#</th>`;
     headers.forEach(h => html += `<th>${h}</th>`);
     html += `</tr></thead><tbody>`;
     array.forEach((item, index) => {
         html += `<tr><td>${index + 1}</td>`;
-        headers.forEach(h => html += `<td>${item[h] || "-"}</td>`);
+        headers.forEach(h => {
+            let val = item[h] || "-";
+            if(val === 'present') val = '<span style="color:green">حاضر</span>';
+            if(val === 'absent') val = '<span style="color:red">غائب</span>';
+            html += `<td>${val}</td>`;
+        });
         html += `</tr>`;
     });
     table.innerHTML = html + `</tbody>`;
@@ -120,21 +258,26 @@ function createTable(array) {
 function generatePDF() {
     const element = document.getElementById('pdf-content');
     const opt = {
-        margin: [10, 10, 10, 10], // هوامش حقيقية
-        filename: 'Report.pdf',
+        margin: [10, 0, 10, 0],
+        filename: 'Report_Official.pdf',
         image: { type: 'jpeg', quality: 1.0 },
         html2canvas: { 
             scale: 2, 
             useCORS: true,
-            // السر هنا: DPI العالي يمنع التشويه
-            dpi: 192,
-            letterRendering: false 
+            letterRendering: false,
+            // DPI عالي جداً لمنع التقطيع
+            dpi: 300
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        // تفعيل نظام كسر الصفحات الذكي
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
     };
-    html2pdf().set(opt).from(element).save();
+    html2pdf().set(opt).from(element).save().then(() => {
+        showStatus("✅ تم تحميل التقرير بنجاح");
+    });
+}
+
+function showStatus(msg) {
+    document.getElementById('status-msg').innerText = msg;
 }
 </script>
 </body>
