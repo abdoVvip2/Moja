@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>المستخرج الرسمي المطور</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
         
@@ -13,6 +17,8 @@
             --accent: #3498db;
             --bg: #f4f7f6;
             --text: #333;
+            --danger: #e74c3c;
+            --success: #2ecc71;
         }
 
         body { 
@@ -64,15 +70,16 @@
         }
         
         .btn-action:hover { background: #2980b9; transform: translateY(-1px); }
+        .btn-action:disabled { background: #95a5a6; cursor: not-allowed; transform: none; }
 
         /* تنسيق ورقة التقرير PDF */
         #pdf-content { 
             background: white; 
             padding: 15mm 20mm; 
-            width: 210mm; /* عرض A4 كامل */
+            width: 210mm; 
             margin: auto;
             min-height: 297mm;
-            display: none; /* يظهر فقط عند وجود بيانات */
+            display: none; 
             box-sizing: border-box;
             position: relative;
         }
@@ -132,15 +139,74 @@
             font-size: 16px;
         }
 
-        #status-msg { margin-top: 15px; font-weight: bold; color: var(--accent); }
+        #status-msg { margin-top: 15px; font-weight: bold; color: var(--accent); font-size: 18px; }
+
+        /* ستايل لوحة الإدارة السرية */
+        #admin-panel {
+            max-width: 900px;
+            margin: 20px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border-top: 5px solid var(--primary);
+            display: none; 
+        }
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        .card h3 { margin: 0; color: #7f8c8d; font-size: 14px; }
+        .card p { margin: 10px 0 0 0; font-size: 24px; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
+<div id="admin-panel">
+    <h2>📊 لوحة الإحصائيات الإدارية (الريل تايم)</h2>
+    <div class="stats-cards">
+        <div class="card">
+            <h3>دخلوا اليوم</h3>
+            <p id="stat-today">0</p>
+        </div>
+        <div class="card">
+            <h3>دخلوا هذا الشهر</h3>
+            <p id="stat-month">0</p>
+        </div>
+        <div class="card">
+            <h3>إجمالي الزيارات المسجلة</h3>
+            <p id="stat-total">0</p>
+        </div>
+    </div>
+    
+    <h3>🌍 توزيع الزوار حسب الدول</h3>
+    <table id="countries-table">
+        <thead>
+            <tr>
+                <th>الدولة</th>
+                <th>عدد الزيارات</th>
+            </tr>
+        </thead>
+        <tbody id="countries-list">
+            <tr><td colspan="2">جاري تحميل البيانات...</td></tr>
+        </tbody>
+    </table>
+    <hr style="margin: 20px 0; border: 0; border-top: 1px solid #eee;">
+</div>
+
 <div class="no-print" id="input-ui">
     <h2>مركز استخراج التقارير الذكي</h2>
     <textarea id="base64Input" placeholder="أدخل الكود المشفر هنا أو سيتم الكشف عنه تلقائياً من الرابط..."></textarea><br>
-    <button class="btn-action" onclick="processManualInput()">📋 استخراج المستند الآن</button>
+    <button class="btn-action" id="submit-btn" onclick="processManualInput()">📋 استخراج المستند الآن</button>
     <div id="status-msg"></div>
 </div>
 
@@ -154,27 +220,148 @@
 </div>
 
 <script>
-// 1. عند التحميل: فحص الرابط أولاً (الطريقة القديمة)
+// 1. تهيئة الفايربيس بالإعدادات الخاصة بك
+const firebaseConfig = {
+  apiKey: "AIzaSyDGCJX_OFXr0OM-ZAS3HzMBZyQmag6uZAI",
+  authDomain: "bank-zift.firebaseapp.com",
+  databaseURL: "https://bank-zift-default-rtdb.firebaseio.com",
+  projectId: "bank-zift",
+  storageBucket: "bank-zift.firebasestorage.app",
+  messagingSenderId: "653679280221",
+  appId: "1:653679280221:web:d3512c56df4ff7d9b8cdb4"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// تحديد مدة الانتظار بالثواني (يمكنك تغيير الـ 15 لأي مدة تريدها)
+const WAITING_TIME = 15; 
+
+// 2. كود تسجيل الزيارة فور دخول الصفحة
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true') {
+        document.getElementById('admin-panel').style.display = 'block';
+        loadAdminStats(); 
+        return; 
+    }
+
+    fetch('https://ipapi.co/json/')
+    .then(res => res.json())
+    .then(data => {
+        logVisit(data.country_name || "غير معروف");
+    })
+    .catch(() => {
+        logVisit("غير معروف");
+    });
+});
+
+function logVisit(country) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    const monthStr = `${year}-${month}`;
+
+    const visitRef = db.ref('visits').push();
+    visitRef.set({
+        date: todayStr,
+        month: monthStr,
+        country: country,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+    });
+}
+
+// 3. كود لوحة التحكم وجلب الإحصائيات (ريل تايم)
+function loadAdminStats() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const todayStr = `${year}-${month}-${day}`;
+    const monthStr = `${year}-${month}`;
+
+    db.ref('visits').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (!data) return;
+
+        let todayCount = 0;
+        let monthCount = 0;
+        let totalCount = 0;
+        let countriesMap = {};
+
+        for (let key in data) {
+            totalCount++;
+            let visit = data[key];
+            
+            if (visit.date === todayStr) todayCount++;
+            if (visit.month === monthStr) monthCount++;
+            
+            if (visit.country) {
+                countriesMap[visit.country] = (countriesMap[visit.country] || 0) + 1;
+            }
+        }
+
+        document.getElementById('stat-today').innerText = todayCount;
+        document.getElementById('stat-month').innerText = monthCount;
+        document.getElementById('stat-total').innerText = totalCount;
+
+        const tbody = document.getElementById('countries-list');
+        tbody.innerHTML = "";
+        
+        const sortedCountries = Object.entries(countriesMap).sort((a, b) => b[1] - a[1]);
+        sortedCountries.forEach(([country, count]) => {
+            tbody.innerHTML += `<tr><td>${country}</td><td>${count}</td></tr>`;
+        });
+    });
+}
+
+// 4. منطق معالجة الـ PDF مع العداد التنازلي الإجباري
 window.onload = function() {
     const urlParams = new URLSearchParams(window.location.search);
     const dataFromUrl = urlParams.get('data');
     if (dataFromUrl) {
         document.getElementById('base64Input').value = dataFromUrl;
-        processData(dataFromUrl);
+        // إذا جاءت البيانات من الرابط تلقائياً، تبدأ عملية العد التنازلي فوراً
+        startCountdown(dataFromUrl);
     }
     document.getElementById('current-date').innerText = "تاريخ الاستخراج: " + new Date().toLocaleDateString('ar-DZ');
 };
 
 function processManualInput() {
     const text = document.getElementById('base64Input').value;
-    if(!text) { alert("يرجى إدخال البيانات"); return; }
-    processData(text);
+    if(!text) { alert("يرجى إدخل البيانات"); return; }
+    startCountdown(text);
 }
 
-function processData(encodedData) {
-    showStatus("⏳ جاري تحليل البيانات...");
+// دالة تشغيل العداد التنازلي الإجباري
+function startCountdown(encodedData) {
+    let timeLeft = WAITING_TIME;
+    const btn = document.getElementById('submit-btn');
+    
+    // تعطيل الزر حتى لا يضغط المستخدم مجدداً
+    btn.disabled = true;
+    
+    showStatus(`⏳ جاري تحضير ملفك، يرجى الانتظار: ${timeLeft} ثانية...`);
+
+    const timer = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            btn.disabled = false;
+            // المتابعة لمعالجة البيانات وتوليد الـ PDF بعد انتهاء الوقت
+            executeDataExtraction(encodedData);
+        } else {
+            showStatus(`⏳ جاري تحضير ملفك، يرجى الانتظار: ${timeLeft} ثانية...`);
+        }
+    }, 1000);
+}
+
+// فك التشفير وعرض المحتوى
+function executeDataExtraction(encodedData) {
+    showStatus("⚙️ جاري تحليل البيانات وبناء المستند...");
     try {
-        // فك التشفير
         const binaryString = atob(encodedData.trim());
         const bytes = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
@@ -183,7 +370,6 @@ function processData(encodedData) {
         const container = document.getElementById('dynamic-body');
         container.innerHTML = ""; 
         
-        // تحديث عنوان التقرير إذا وجد
         if(decoded["التقرير"] || decoded["Rapport"]) {
             document.getElementById('report-type-title').innerText = decoded["التقرير"] || decoded["Rapport"];
         }
@@ -192,8 +378,7 @@ function processData(encodedData) {
 
         document.getElementById('pdf-content').style.display = "block";
         
-        // انتظار استقرار الخطوط قبل التحويل
-        showStatus("🖨️ جاري توليد ملف PDF...");
+        showStatus("🖨️ جاري توليد ملف PDF وتحميله...");
         setTimeout(generatePDF, 800);
     } catch (e) { 
         showStatus("❌ فشل: البيانات غير صالحة");
@@ -207,20 +392,17 @@ function renderAnyData(data, container) {
     
     for (let key in data) {
         let value = data[key];
-        // إذا كانت مصفوفة (جدول)
         if (Array.isArray(value)) {
-            container.appendChild(grid); // أضف البيانات العلوية قبل الجدول
-            grid = document.createElement('div'); // صفر الشبكة لما بعد الجدول
+            container.appendChild(grid); 
+            grid = document.createElement('div'); 
             grid.className = "data-grid";
             
             container.innerHTML += `<div class="section-title">بيانات: ${key}</div>`;
             container.appendChild(createTable(value));
         } 
-        // إذا كان كائناً (تجاهل العناوين المتكررة)
         else if (typeof value === 'object' && value !== null) {
             renderAnyData(value, container);
         } 
-        // بيانات نصية عادية
         else {
             if(key !== "التقرير" && key !== "Rapport") {
                 grid.innerHTML += `
@@ -265,7 +447,6 @@ function generatePDF() {
             scale: 2, 
             useCORS: true,
             letterRendering: false,
-            // DPI عالي جداً لمنع التقطيع
             dpi: 300
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
